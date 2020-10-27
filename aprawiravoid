@@ -1,0 +1,487 @@
+/* Solution to comp20005 Assignment 2, 2019 semester 1.
+
+   Authorship Declaration:
+
+   (1) I certify that the program contained in this submission is completely
+   my own individual work, except where explicitly noted by comments that
+   provide details otherwise.  I understand that work that has been developed
+   by another student, or by me in collaboration with other students,
+   or by non-students as a result of request, solicitation, or payment,
+   may not be submitted for assessment in this subject.  I understand that
+   submitting for assessment work developed by or in collaboration with
+   other students or non-students constitutes Academic Misconduct, and
+   may be penalized by mark deductions, or by other penalties determined
+   via the University of Melbourne Academic Honesty Policy, as described
+   at https://academicintegrity.unimelb.edu.au.
+
+   (2) I also certify that I have not provided a copy of this work in either
+   softcopy or hardcopy or any other form to any other student, and nor will
+   I do so until after the marks are released. I understand that providing
+   my work to other students, regardless of my intention or any undertakings
+   made to me by that other student, is also Academic Misconduct.
+
+   (3) I further understand that providing a copy of the assignment
+   specification to any form of code authoring or assignment tutoring
+   service, or drawing the attention of others to such services and code
+   that may have been made available via such a service, may be regarded
+   as Student General Misconduct (interfering with the teaching activities
+   of the University and/or inciting others to commit Academic Misconduct).
+   I understand that an allegation of Student General Misconduct may arise
+   regardless of whether or not I personally make use of such solutions
+   or sought benefit from such actions.
+
+   Signed by: [Aditya Prawira, Student_ID:874615]
+   Dated:     [May 11th, 2019]
+
+*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <ctype.h>
+
+#define NEWLINE '\n'
+#define NOTMONTH 0
+#define MAXMONTH 12
+#define MAXDATA 9999
+#define NOTVALID 'N'
+#define VALIDATE 'Y'
+#define STAR '*'
+#define NODATA '?'
+#define ZERO 0
+#define MAXROWS 24
+#define LINE \
+    "+-----+----+----+----+----+----+----+----+----+----+----+----+\n\
+       Jan  Feb  Mar  Apr  May  Jun  Jul  Aug  Sep  Oct  Nov  Dec "
+
+char *month_char[] = {"...", "Jan", "Feb", "Mar", "Apr", "May", 
+                     "Jun","Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+
+int month_int[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+
+typedef struct{
+   int initial_year;
+   int final_year;
+}year_range_t;
+
+int mygetchar();
+int get_char();
+int check_year(int M[], int n);
+void years(int Y[], int i_year, int n);
+void data_in_year(int DATE[][MAXMONTH], double PRCP[][MAXMONTH], 
+   char VALID[][MAXMONTH], int MPY[], int Y1[], int Y2[], 
+   int M[], double P[], char V[], int data, int nyear);
+
+int not_in_year(int A[], int m, int n);
+void resultant_data(int D[][MAXMONTH], int R_DAT[][MAXMONTH], 
+   double P_DAT[][MAXMONTH], double R_PRCP[][MAXMONTH], 
+   char R_VALID[][MAXMONTH], char V_DAT[][MAXMONTH], 
+   int MPY[], int m[], int nyear);
+
+void print_stage1(int R_DAT[][MAXMONTH], char R_VALID[][MAXMONTH], 
+   int Y[], int nyear);
+
+void stage2(double R_PRCP[][MAXMONTH], int D_INT[][MAXMONTH], 
+   char R_VALID[][MAXMONTH], year_range_t Y_R[], int D_EXST[], int Y[], 
+   double MEAN[], int nyear);
+
+double tau(double R_PRCP[], char V_PM[], int initial_year, 
+   int final_year, int i_year, int ndata);
+
+void stage3(double R_PRCP[][MAXMONTH], char R_VALID[][MAXMONTH], 
+   year_range_t Y_R[], int D_EXST[], int i_year, int nyear);
+
+double find_max(double R[], int maxmonth);
+int round_to_scale(int prcp, int scales);
+double average_bigger(double MEAN[], double max);
+void round_array(int ROUND_DATA[], int ROUND_MEAN[], double R_PRCP[], 
+   double MEAN[], int scale);
+int
+main(int argc, char *argv[]){
+   year_range_t YEAR_RANGE[MAXDATA];
+   int DATE_INTERVAL[MAXDATA][MAXMONTH];
+   int data = 0, chars, nyear, i_year;
+   int stat_num, year, month, post;
+   int n = 0;
+   double mili;
+   double PRCPTATION[MAXDATA];
+   int DATA_EXIST[MAXDATA];
+   char valid, VALID[MAXDATA];
+   int MONTH[MAXDATA], YEAR[MAXDATA];
+   int YEARS[MAXDATA], MONTHS_PER_YEAR[MAXDATA];
+   int DATE[MAXDATA][MAXMONTH], RESULTANT_DATA[MAXDATA][MAXMONTH];
+   double PRECIP[MAXDATA][MAXMONTH], RESULTANT_PRECIP[MAXDATA][MAXMONTH];
+   double MEAN[MAXDATA];
+   char VALID_DATA[MAXDATA][MAXMONTH], RESULTANT_VALID[MAXDATA][MAXMONTH];
+
+   /*STAGE1*/
+   while((chars = get_char()) != EOF){
+      while(scanf("%d,%d,%d,%d,%lf,%c", &post, &stat_num, &year, &month, &mili, &valid) == 6){
+         data += 1;
+         VALID[n] = valid;
+         YEAR[n] = year;
+         MONTH[n] = month;
+         PRCPTATION[n] = mili;
+         n += 1;
+      }
+   }
+   printf("S1, site number %06d, %d datalines in input\n", stat_num, data);
+   nyear = check_year(MONTH, data);
+   i_year = year - nyear;
+   years(YEARS, i_year, nyear);
+   data_in_year(DATE, PRECIP, VALID_DATA, MONTHS_PER_YEAR, 
+      YEAR, YEARS, MONTH, PRCPTATION, VALID, data, nyear);
+   resultant_data(DATE, RESULTANT_DATA, PRECIP,
+      RESULTANT_PRECIP, RESULTANT_VALID, VALID_DATA, 
+      MONTHS_PER_YEAR, month_int, nyear);
+   print_stage1(RESULTANT_DATA, RESULTANT_VALID, 
+      YEARS, nyear);
+   /*END OF STAGE1*/
+   /* STAGE2 */
+   stage2(RESULTANT_PRECIP, DATE_INTERVAL, 
+      RESULTANT_VALID, YEAR_RANGE, DATA_EXIST, YEARS, 
+      MEAN, nyear);
+   /* END OF STAGE2 */
+   /* STAGE3 */
+   stage3(RESULTANT_PRECIP, RESULTANT_VALID, 
+      YEAR_RANGE, DATA_EXIST, i_year, nyear);
+   /* END OF STAGE3 */
+   /* STAGE4 */
+   int i, j, k;
+   int yyear, last_digit;
+   double max, scale_fac_d;
+   int scale_fac_int, max_prcp;
+   int ROUND_DATA[MAXDATA], ROUND_MEAN[MAXDATA];
+
+   for(i= 1; i<argc; i++){
+      yyear = atoi(argv[i]) - i_year;
+      /* taking last 2 digits of year */
+      last_digit = atoi(argv[i]) % 100;
+      max = find_max(RESULTANT_PRECIP[yyear], MAXMONTH);
+      max = average_bigger(MEAN, max);
+      max_prcp = round(max);
+      scale_fac_d = max/24;
+      scale_fac_int = round(scale_fac_d);
+      if(scale_fac_int < scale_fac_d){
+         scale_fac_int += 1;
+      }
+      max_prcp = round_to_scale(max_prcp, scale_fac_int);
+      printf("S4, %d max is %5.1lf, scale is %d\n", atoi(argv[i]), max, scale_fac_int);
+      if(max_prcp < max){
+         max_prcp += scale_fac_int;
+      }
+      round_array(ROUND_DATA, ROUND_MEAN, RESULTANT_PRECIP[yyear], 
+         MEAN, scale_fac_int);
+      round_to_scale(ROUND_DATA[j], scale_fac_int);
+      round_to_scale(ROUND_MEAN[j], scale_fac_int);
+      for(j = 0; j < MAXROWS; j++){
+         printf("%4d |", max_prcp);
+         for(k = 0; k<MAXMONTH; k++){
+            if(ROUND_DATA[k] < RESULTANT_PRECIP[yyear][k]){
+               ROUND_DATA[k] += scale_fac_int;
+            }
+            if(ROUND_MEAN[k] < MEAN[k]){
+               ROUND_MEAN[k] += scale_fac_int;
+            }
+            if(ROUND_DATA[k] >= max_prcp){
+               if(ROUND_DATA[k] >= ROUND_MEAN[k]){
+                  if(ROUND_MEAN[k] == max_prcp){
+                     printf(" *%02d*", last_digit);
+                  }else{
+                     printf("  %02d ", last_digit);
+                  }
+                  ROUND_DATA[k]-=scale_fac_int;
+               }else{
+                  printf("  %02d ", last_digit);
+               }
+               
+            }else if(ROUND_DATA[k] == 0){
+               if(ROUND_MEAN[k] == max_prcp){
+                  printf(" ****");
+               }else{
+                  printf("     ");
+               }
+            }else{
+               if(ROUND_MEAN[k] == max_prcp){
+                  printf(" ****");
+               }else{
+                  printf("     ");
+               }
+            }
+         }
+         printf("\n");
+         max_prcp -= scale_fac_int;
+         if(max_prcp == 0){
+            break;
+         }
+      }
+      printf("%4d %s\n\n", max_prcp, LINE);
+   }
+   printf("Ta daa!\n");
+
+   return 0;
+}
+
+int
+mygetchar() {
+   int c;
+   while ((c=getchar())=='\r') {
+   }
+   return c;
+}
+
+int
+get_char(){
+   int ch;
+   while((ch = mygetchar())== NEWLINE){
+   }
+   return ch;
+}
+int
+check_year(int M[], int n){
+   int i;
+   int nyear = 0;
+   for(i = 0; i< n-1; i++){
+      if(M[i] >= M[i+1]){
+         nyear += 1;
+      }
+   }
+   return nyear;
+}
+void
+years(int Y[], int i_year, int n){
+   int i;
+   int year = i_year;
+   for(i = 0; i<=n; i++){
+      Y[i] = year;
+      year += 1;
+   }
+}
+void
+data_in_year(int DATE[][MAXMONTH], double PRCP[][MAXMONTH], 
+   char VALID[][MAXMONTH], int MPY[], int Y1[], int Y2[], 
+   int M[], double P[], char V[], int data, int nyear){
+   int i, n = 0, cols = 0, rows = 0;
+   while(rows<nyear){
+      for(i = 0; i<data; i++){
+         if(Y1[i] == Y2[rows]){
+            DATE[rows][cols] = M[i];
+            PRCP[rows][cols] = P[i];
+            VALID[rows][cols] = V[i];
+            cols += 1;
+         }else{
+            MPY[n] = cols;
+            cols = 0;
+            i -= 1; n+=1; rows += 1;
+         }
+      }
+   }
+   MPY[n] = cols;
+}
+
+int
+not_in_year(int A[], int m, int n){
+   int i;
+   int in_year = 0;
+   for(i = 0; i<n; i++){
+      if(m == A[i]){
+         in_year += 1;
+      }
+   }
+   if(in_year){
+      return 0;
+   }
+   return 1;
+}
+void
+resultant_data(int D[][MAXMONTH], int R_DAT[][MAXMONTH], 
+   double P_DAT[][MAXMONTH], double R_PRCP[][MAXMONTH], 
+   char R_VALID[][MAXMONTH], char V_DAT[][MAXMONTH], 
+   int MPY[], int m[], int nyear){
+
+   int i, j, rows = 0, cols = 0;
+   while(rows <= nyear){
+      j = i = 0;
+      while(i < MAXMONTH){
+         if(not_in_year(D[rows], m[i], MPY[rows])){
+            R_DAT[rows][cols] = 0;
+            R_PRCP[rows][cols] = 0;
+            R_VALID[rows][cols] = NODATA;
+            cols += 1;
+         }else{
+            R_DAT[rows][cols] = month_int[i];
+            R_PRCP[rows][cols] = P_DAT[rows][j];
+            R_VALID[rows][cols] = V_DAT[rows][j];
+            j += 1;
+            cols += 1;
+         }
+         i+=1;
+      }
+      rows += 1;
+      cols = 0;
+   }
+}
+void
+print_stage1(int R_DAT[][MAXMONTH], char R_VALID[][MAXMONTH], 
+   int Y[], int nyear){
+
+   int i, j;
+   for(i = 0; i<=nyear; i++){
+      printf("S1, %d:", Y[i]);
+      for(j = 0; j< MAXMONTH; j++){
+         if(R_VALID[i][j]==NOTVALID){
+            printf("%4s%1c", month_char[ R_DAT[i][j] ], STAR);
+         }else{
+            printf("%4s ", month_char[ R_DAT[i][j] ]);
+         }
+      }
+      printf("\n");
+   }
+   printf("\n");
+}
+
+void
+stage2(double R_PRCP[][MAXMONTH], int D_INT[][MAXMONTH], 
+   char R_VALID[][MAXMONTH], year_range_t Y_R[], int D_EXST[], int Y[], 
+   double MEAN[], int nyear){
+
+   int i, m, n;
+   double data_exist = 0.0, tot_precip = 0.0;
+   m = n = 0;
+   while(n < MAXMONTH){
+      for(i= 0; i<=nyear; i++){
+         if(R_PRCP[i][n] != 0 || R_VALID[i][n] != NODATA){
+            if(R_VALID[i][n] == NOTVALID){
+               tot_precip += 0;
+            }
+            tot_precip += R_PRCP[i][n];
+            data_exist += 1;
+            D_INT[n][m] = Y[i];
+            m+=1;
+         }
+      }
+      if(data_exist == 0){
+         MEAN[n] = 0;
+         D_EXST[n] = 0;
+      }else{
+         D_EXST[n] = data_exist;
+         MEAN[n] = tot_precip/data_exist;
+      }
+      Y_R[n].initial_year = D_INT[n][0];
+      Y_R[n].final_year = D_INT[n][m-1];
+      printf("S2, %s,%4d values", month_char[n+1], D_EXST[n]);
+      if(D_EXST[n] != 0){
+         printf(", %d-%d, mean of %5.1lfmm\n", Y_R[n].initial_year, Y_R[n].final_year, MEAN[n]);
+      }else{
+         printf("\n");
+      }
+      n+=1;
+      m = 0;
+      tot_precip = data_exist = 0;
+   }
+   printf("\n");
+}
+
+double
+tau(double R_PRCP[], char V_PM[], int initial_year, 
+   int final_year, int i_year, int ndata){
+
+   int i,j, start, end;
+   double sum, resultant_sum;
+   double coef, tau;
+   coef = 1/((ndata*(ndata-1.0))/2.0);
+   sum = resultant_sum = 0.0;
+   start = initial_year - i_year;
+   end = final_year - i_year;
+   for(i = start; i<end; i++){
+      if(R_PRCP[i]==0 && V_PM[i] != VALIDATE){
+         i+=1;
+      }
+      for(j = i+1; j<=end; j++){
+         if(R_PRCP[j] == 0&&V_PM[j]!=VALIDATE){
+            j +=1;
+         }
+         if(R_PRCP[i]>R_PRCP[j]){
+            sum -= 1.0;
+         }else if(R_PRCP[i]==R_PRCP[j]){
+            sum += 0.0;
+         }else{
+            sum += 1.0;
+         }
+      }  
+      resultant_sum += sum;
+      sum = 0.0;
+   }
+   tau = coef*resultant_sum;
+   return tau;
+}
+void
+stage3(double R_PRCP[][MAXMONTH], char R_VALID[][MAXMONTH], 
+   year_range_t Y_R[], int D_EXST[], int i_year, int nyear){
+   int i,j;
+   double RAIN_PERMONTH[MAXDATA][MAXMONTH];
+   double TAU[MAXDATA];
+   char VALID_PERMONTH[MAXDATA][MAXMONTH];
+   for(i = 0; i< MAXMONTH; i++){
+      for(j = 0; j<=nyear; j++){
+         RAIN_PERMONTH[i][j] = R_PRCP[j][i];
+         VALID_PERMONTH[i][j] = R_VALID[j][i];
+         TAU[i]=tau(RAIN_PERMONTH[i], VALID_PERMONTH[i], Y_R[i].initial_year, 
+            Y_R[i].final_year, i_year, D_EXST[i]);
+      }
+      printf("S3, %s,%4d values", month_char[i+1], D_EXST[i]);
+      if(D_EXST[i]>=2){
+         printf(", %d-%d, tau of %5.2lf\n", Y_R[i].initial_year, 
+            Y_R[i].final_year, TAU[i]);
+      }else{
+         printf("\n");
+      }
+   }
+   printf("\n");
+}
+double
+find_max(double R[], int maxmonth){
+   int i;
+   double max;
+   max = R[0];
+   for(i = 1; i< MAXMONTH; i++){
+      if(max<R[i]){
+         max = R[i];
+      }
+   }
+   return max; 
+}
+int
+round_to_scale(int prcp, int scales){
+   return ((prcp + (scales -1)) / scales )* scales;
+}
+
+double
+average_bigger(double MEAN[], double max){
+   int i; 
+   for(i = 0; i< MAXMONTH; i++){
+      if(MEAN[i]>max){
+         max = MEAN[i];
+      }
+   }
+   return max;
+}
+void
+round_array(int ROUND_DATA[], int ROUND_MEAN[], double R_PRCP[], 
+   double MEAN[], int scale){
+   int i; 
+   for(i = 0; i<MAXMONTH; i++){
+      if(R_PRCP[i]>0 && R_PRCP[i]<1 && round(R_PRCP[i])==0){
+         ROUND_DATA[i] = scale;
+      }else{
+         ROUND_DATA[i] = round_to_scale(round(R_PRCP[i]), scale);
+      }
+      if(MEAN[i]>0 && MEAN[i]<1 && round(MEAN[i])==0){
+         ROUND_MEAN[i] = scale;
+      }else{
+         ROUND_MEAN[i] = round_to_scale(round(MEAN[i]), scale);
+      }
+   }
+}
+
